@@ -1,0 +1,18 @@
++ /etc/
++ /etc/**
++ /home/
++ /home/*
+- /home/*/.cache
+- /home/laurent/Objects
+- /home/laurent/X-Plane 11
+- /home/laurent/Vidéos
+- /home/laurent/Téléchargements
+- /home/laurent/Steam
+- /home/laurent/.local/share/Steam
+- /home/laurent/rpmbuild
+- /home/laurent/PlayOnLinux's virtual drives
+- /home/laurent/Musique
+- /home/laurent/Images
+- /home/laurent/tmp
++ /home/laurent/**
+- /*

@@ -1,0 +1,112 @@
+#!/bin/bash
+
+UUID="06a45f17-5082-4ba0-a5b5-eba78efcbd8f"
+CONFIG=/etc/macfly/file.list
+MAXDELETE=10
+
+LOGFILE=/var/log/macfly.log
+
+exec >> $LOGFILE 2>&1
+
+date
+
+RUN=/var/run/macfly
+LOCK=$RUN/lock
+DISK=/media/MacFly
+BACKUP=$DISK/$HOSTNAME
+CURRENT=$BACKUP/current
+HOURLY=$BACKUP/hourly
+DAYLY=$BACKUP/dayly
+WEEKLY=$BACKUP/weekly
+
+function errmsg
+{
+    echo $@ 1>&2
+    exit 1
+}
+
+function cleanup
+{
+    rm -f $LOCK
+}
+
+# check we use a btrfs FS
+
+TYPE=$(blkid -s TYPE -o value -t UUID=$UUID)
+if [ "$TYPE" != "btrfs" ] ; then
+    errmsg "$UUID is not a btrfs FS"
+fi
+
+if [ -e $LOCK ] ; then
+    errmsg "$LOCK already exists, exiting..."
+fi
+
+if [ ! -e $RUN ] ; then
+    mkdir -p $RUN
+fi
+
+trap cleanup SIGTERM EXIT
+
+echo $$ > $LOCK
+
+if [ ! -e $CURRENT ] ; then
+    btrfs subvolume create $CURRENT
+fi
+
+if [ ! -e $HOURLY ] ; then
+    mkdir -p $HOURLY
+fi
+
+if [ ! -e $DAYLY ] ; then
+    mkdir -p $DAYLY
+fi
+
+if [ ! -e $WEEKLY ] ; then
+    mkdir -p $WEEKLY
+fi
+
+TRY=0
+while ! rsync --quiet -aAXSi --delete --delete-excluded \
+              --filter=". $CONFIG" / --super / $CURRENT ; do
+    TOTAL=$(df --output=pcent $CURRENT|tail -1)
+    if [ "$TOTAL" != "100%" ] ; then
+        errmsg "rync failed!"
+    fi
+    if [ $TRY -e MAXDELETE ] ; then
+        trap
+        errmsg "Too many deleted snapshots"
+    fi
+    TRY=$((TRY + 1))
+    # cleanup one backup from weekly
+    EARLIER=$(ls -drt1 $WEEKLY/*|head -1)
+    if [ "$EARLIER" = "" ] ; then
+        errmsg "No weekly snapshot to remove to free space"
+    fi
+    btrfs subvolume delete $(EARLIER)
+done
+
+TAG=$(date --iso-8601=seconds)
+touch $CURRENT
+btrfs subvolume snapshot -r $CURRENT $HOURLY/$TAG
+
+# if last dayly snapshot is more than 24 hours, clone last hourly one
+
+if [ $(find $DAYLY -mindepth 1 -maxdepth 1 -mtime 0 | wc -l) = 0 ] ; then
+    btrfs subvolume snapshot -r $CURRENT $DAYLY/$TAG
+fi
+
+# if last weekly snapshot is more than 1 week, clone last hourly one
+
+if [ $(find $WEEKLY -mindepth 1 -maxdepth 1 -mtime -7 | wc -l) = 0 ] ; then
+    btrfs subvolume snapshot -r $CURRENT $WEEKLY/$TAG
+fi
+
+# cleanup snapshot older than 1 day in hourly directory
+
+find $HOURLY -mindepth 1 -maxdepth 1 -mtime +0 \
+             -exec btrfs subvolume delete {} \;
+
+# cleanup snapshot older than 1 month in dayly directory
+
+find $DAYLY -mindepth 1 -maxdepth 1 -mtime +30 \
+            -exec btrfs subvolume delete {} \;
