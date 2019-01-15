@@ -12,8 +12,8 @@ date
 
 RUN=/var/run/macfly
 LOCK=$RUN/lock
-DISK=/media/MacFly
-BACKUP=$DISK/$HOSTNAME
+TARGET=$RUN/target
+BACKUP=$TARGET/$HOSTNAME
 CURRENT=$BACKUP/current
 HOURLY=$BACKUP/hourly
 DAYLY=$BACKUP/dayly
@@ -27,6 +27,7 @@ function errmsg
 
 function cleanup
 {
+    umount $TARGET
     rm -f $LOCK
 }
 
@@ -45,9 +46,17 @@ if [ ! -e $RUN ] ; then
     mkdir -p $RUN
 fi
 
+if [ ! -e $TARGET ] ; then
+    mkdir -p $TARGET
+fi
+
 trap cleanup SIGTERM EXIT
 
 echo $$ > $LOCK
+
+if ! mount UUID=$UUID $TARGET ; then
+    errmsg "Cannot mount UUID=$UUID on $TARGET"
+fi
 
 if [ ! -e $CURRENT ] ; then
     btrfs subvolume create $CURRENT
