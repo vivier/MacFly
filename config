@@ -1,0 +1,15 @@
+# UUID of BTRFS volume to use for incremental backup
+# you can get the uuid with "blkid -t TYPE=btrfs -s UUID"
+UUID="06a45f17-5082-4ba0-a5b5-eba78efcbd8f"
+
+# when space is exausted how many snapshots wan we delete in a raw
+MAXDELETE=10
+
+# list of files to ignore
+FILTER=/etc/macfly/filter
+
+# logfile
+LOGFILE=/var/log/macfly.log
+
+# working directory (lock, mount directory)
+RUN=/var/run/macfly

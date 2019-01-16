@@ -1,16 +1,11 @@
 #!/bin/bash
 
-UUID="06a45f17-5082-4ba0-a5b5-eba78efcbd8f"
-CONFIG=/etc/macfly/file.list
-MAXDELETE=10
-
-LOGFILE=/var/log/macfly.log
+. /etc/macfly/config
 
 exec >> $LOGFILE 2>&1
 
 date
 
-RUN=/var/run/macfly
 LOCK=$RUN/lock
 TARGET=$RUN/target
 BACKUP=$TARGET/$HOSTNAME
@@ -76,7 +71,7 @@ fi
 
 TRY=0
 while ! rsync --quiet -aAXSi --delete --delete-excluded \
-              --filter=". $CONFIG" / --super / $CURRENT ; do
+              --filter=". $FILTER" / --super / $CURRENT ; do
     TOTAL=$(df --output=pcent $CURRENT|tail -1)
     if [ "$TOTAL" != "100%" ] ; then
         errmsg "rync failed!"
