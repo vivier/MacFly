@@ -78,7 +78,7 @@ while ! rsync --quiet -aAXSi --delete --delete-excluded \
     if [ "$TOTAL" != "100%" ] ; then
         errmsg "rync failed!"
     fi
-    if [ $TRY -e MAXDELETE ] ; then
+    if [ $TRY -ge ${MAXDELETE:=10} ] ; then
         trap
         errmsg "Too many deleted snapshots"
     fi
@@ -89,7 +89,7 @@ while ! rsync --quiet -aAXSi --delete --delete-excluded \
         errmsg "No weekly snapshot to remove to free space"
     fi
     df -h $CURRENT
-    btrfs subvolume delete $(EARLIER)
+    btrfs subvolume delete $EARLIER
 done
 df -h $CURRENT
 
