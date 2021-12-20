@@ -91,6 +91,9 @@ while ! rsync --quiet -aAXSi --delete --delete-excluded \
     df -h $CURRENT
     btrfs subvolume delete $EARLIER
 done
+
+btrfs filesystem defragment -r $CURRENT
+
 df -h $CURRENT
 
 TAG=$(date --iso-8601=seconds)
