@@ -85,7 +85,7 @@ while ! rsync --quiet -aAXSi --delete --delete-excluded \
     TRY=$((TRY + 1))
     # cleanup one backup from weekly
     EARLIER=$(ls -drt1 $WEEKLY/*|head -1)
-    if [ "$EARLIER" = "" ] ; then
+    if [ "$EARLIER" = "" ] ; then
         errmsg "No weekly snapshot to remove to free space"
     fi
     df -h $CURRENT
